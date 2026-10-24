@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>BYTEQUEST</title>
+<style>
+:root{--tile-a:#EEF2E0;--tile-b:#D3DFB8;--ladder:#3E7D4E;--snake:#1F5C3A;--ink:#1E2B1A;--p1:#D4A017;--p2:#8B5A2B}
+*{box-sizing:border-box}
+html,body{min-height:100%}
+body{margin:0;font-family:Georgia,serif;color:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;overflow-x:hidden;
+background:linear-gradient(rgba(127,166,80,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(127,166,80,.08) 1px,transparent 1px),radial-gradient(circle at 30% 20%,#1e2e18,#10190d 60%,#0a0f07);
+background-size:40px 40px,40px 40px,100% 100%;animation:gridMove 12s linear infinite}
+@keyframes gridMove{to{background-position:40px 40px,40px 40px,0 0}}
+body::before,body::after{content:"";position:fixed;border-radius:50%;filter:blur(70px);pointer-events:none;z-index:0;animation:orb 9s ease-in-out infinite alternate}
+body::before{width:340px;height:340px;top:-80px;left:-80px;background:rgba(127,166,80,.3)}
+body::after{width:420px;height:420px;bottom:-120px;right:-100px;background:rgba(212,160,23,.18);animation-delay:-4s}
+@keyframes orb{to{transform:translate(40px,30px) scale(1.15)}}
+#bgSymbols{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:0}
+#bgSymbols span{position:absolute;bottom:-60px;color:#A8D08D;opacity:0;font-family:'Courier New',monospace;font-weight:700;animation:floatUp linear infinite}
+@keyframes floatUp{0%{transform:translateY(0) rotate(0);opacity:0}10%,90%{opacity:.22}100%{transform:translateY(-115vh) rotate(25deg);opacity:0}}
+.app{position:relative;z-index:1;display:flex;gap:28px;flex-wrap:wrap;align-items:flex-start;justify-content:center;max-width:980px}
+.title{font-family:'Palatino Linotype',Georgia,serif;font-weight:700;letter-spacing:1px;color:#A8D08D;text-align:center;margin:0 0 14px;font-size:28px}
+.title small{display:block;font-size:12px;letter-spacing:4px;color:#7FA46A;font-weight:400;margin-top:4px;text-transform:uppercase}
+.board-wrap{background:linear-gradient(160deg,#3A5A2C,#22381A);padding:14px;border-radius:10px;max-width:100%;overflow-x:auto;animation:glow 3s ease-in-out infinite}
+@keyframes glow{0%,100%{box-shadow:0 12px 40px rgba(0,0,0,.6),inset 0 0 0 2px #7FA650}50%{box-shadow:0 12px 40px rgba(0,0,0,.6),inset 0 0 0 2px #A8D08D,0 0 22px rgba(168,208,141,.55)}}
+#board{display:grid;grid-template-columns:repeat(10,48px);grid-template-rows:repeat(10,48px);background:#E8EDD8;border-radius:4px;overflow:hidden;position:relative}
+.cell{display:flex;align-items:flex-start;justify-content:flex-end;padding:3px 4px;font-size:10px;color:#8a7a5c;font-weight:600}
+.cell.a{background:var(--tile-a)}.cell.b{background:var(--tile-b)}.cell.win{background:#e5c98e}
+svg#overlay{position:absolute;top:0;left:0;pointer-events:none}
+.token{position:absolute;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:16px;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.4);transition:left .4s,top .4s;z-index:5}
+.token.p1{background:var(--p1);border:2px solid #7a2e15}.token.p2{background:var(--p2);border:2px solid #163a5c}
+.panel{width:260px;display:flex;flex-direction:column;gap:16px}
+.card{background:#F3F5E9;border-radius:8px;padding:16px 18px;box-shadow:0 8px 24px rgba(0,0,0,.4)}
+.lbl{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#6B8256;margin-bottom:6px;display:flex;justify-content:space-between}
+.turn-name{font-size:20px;font-weight:700;display:flex;align-items:center;gap:8px}
+.dot{width:14px;height:14px;border-radius:50%;display:inline-block}.dot.p1{background:var(--p1)}.dot.p2{background:var(--p2)}
+.box{margin-top:14px;background:#EFF4E2;border:1px solid #B9CE9C;border-radius:8px;padding:14px;display:none}
+.cat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+button{font-family:inherit;cursor:pointer}
+.catBtn,.choiceBtn,#startBtn{border:none;border-radius:6px;background:linear-gradient(180deg,#7FA650,#4C7A32);color:#fff;font-weight:700;box-shadow:0 3px 8px rgba(0,0,0,.25);transition:transform .1s}
+.catBtn{padding:12px 8px;font-size:13px}
+.choiceBtn{padding:10px 12px;font-size:13px;text-align:left;font-weight:600;width:100%;margin-bottom:8px}
+.catBtn:hover,.choiceBtn:hover:not(:disabled){transform:translateY(-1px)}
+.choiceBtn:disabled{opacity:.5;cursor:not-allowed}
+.choiceBtn.correct{background:linear-gradient(180deg,#4C9A5E,#2E6B3E);opacity:1}
+.choiceBtn.wrong{background:linear-gradient(180deg,#B5432E,#7C2A1B);opacity:1}
+#startBtn{width:100%;margin-top:6px;padding:12px;font-size:15px;letter-spacing:1px;border-radius:8px}
+#startBtn:disabled{opacity:.5;cursor:not-allowed}
+.timer-row{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+#timerText{font-size:13px;font-weight:700;color:#3E6B2C;min-width:38px}
+.track{flex:1;height:8px;background:#DCE6C8;border-radius:4px;overflow:hidden}
+#timerFill{height:100%;width:100%;background:linear-gradient(90deg,#6FA24B,#3E6B2C);transition:width .1s linear}
+#timerFill.urgent{background:linear-gradient(90deg,#D9503A,#B5432E)}#timerText.urgent{color:#B5432E}
+#question{font-size:16px;font-weight:700;margin-bottom:12px;line-height:1.35}
+#message{margin-top:12px;font-size:13px;color:#4E6B3E;min-height:36px;line-height:1.4}
+.ghost{margin-top:6px;width:100%;background:none;border:1px solid #9BB57E;color:#4E6B3E;padding:8px;border-radius:6px;font-size:12px;letter-spacing:1px}
+.ghost:hover{background:#E2EAD0}
+.score{display:flex;align-items:center;justify-content:space-between;text-align:center}
+.score div div:first-child{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:#6B8256}
+.score b{font-size:22px}
+.legend{font-size:12px;color:#4E6B3E;display:flex;flex-direction:column;gap:6px}
+.sw{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px}
+#winner{display:none;text-align:center;font-weight:700;color:#2E4A22;padding:10px;background:#D6E8BE;border-radius:6px;margin-top:10px}
+.snake-belly{animation:slither 1.1s linear infinite}@keyframes slither{to{stroke-dashoffset:-16}}
+.nameRow{display:flex;gap:6px;margin-bottom:12px}.nameRow input{width:100%;min-width:0;padding:6px 8px;border:1px solid #B9CE9C;border-radius:6px;font-family:inherit;font-size:13px}
+#startBtn{display:none!important} /* category choices now appear automatically */
+#beginBtn{background:linear-gradient(180deg,#7FA650,#4C7A32);color:#fff;border:none;font-weight:700;margin:0 0 12px;padding:10px;font-size:14px}
+#beginBtn:hover{background:linear-gradient(180deg,#8DB65C,#56873A)}
+.nameRow input:disabled{background:#E9EEDC;color:#555}
+#howBtn{background:#DCE9C4;border:1px solid #9BB57E;color:#3E5A30;border-radius:12px;padding:3px 9px;font-size:11px;letter-spacing:0;text-transform:none;font-weight:700}
+#howBtn:hover{background:#cfe0b0}
+#howCard .lbl{margin-bottom:0}#howCard #howBox{margin:8px 0 0}
+#howBox{background:#EFF4E2;border:1px solid #B9CE9C;border-radius:8px;padding:8px 10px;margin-bottom:12px}
+#howBox ol{margin:0;padding-left:18px;font-size:12.5px;line-height:1.55;color:#3E5A30}#howBox li{margin-bottom:4px}
+</style>
+</head>
+<body>
+<div class="app">
+  <div>
+    <div class="title">BYTEQUEST<small>answer right, move forward</small></div>
+    <div class="board-wrap"><div id="board"></div></div>
+  </div>
+  <div class="panel">
+    <div class="card score">
+      <div><div id="n1">Player 1</div><b id="s1" style="color:var(--p1)">0</b></div>
+      <div style="font-size:11px;color:#93A87C">WINS</div>
+      <div><div id="n2">Player 2</div><b id="s2" style="color:var(--p2)">0</b></div>
+    </div>
+    <div class="card" id="howCard">
+      <div class="lbl"><span>📖 How to Play</span><button type="button" id="howBtn">Show</button></div>
+      <div id="howBox" style="display:none"><ol>
+        <li>Type both player names, then press <b>Start Game</b>.</li>
+        <li>On your turn, pick a <b>category</b>.</li>
+        <li>Answer within <b>10 seconds</b>.</li>
+        <li><b>Correct:</b> move 1–6 squares. <b>Wrong or time's up:</b> turn skipped.</li>
+        <li><b>Ladders</b> take you up, <b>snakes</b> slide you down.</li>
+        <li>Reach <b>square 100</b> to win!</li>
+      </ol></div>
+    </div>
+    <div class="card">
+      <div class="lbl">Player names</div>
+      <div class="nameRow"><input id="name1" maxlength="12" placeholder="Player 1"><input id="name2" maxlength="12" placeholder="Player 2"></div>
+      <button class="ghost" id="beginBtn">▶ Start Game</button>
+      <div class="lbl">Current turn</div>
+      <div class="turn-name"><span class="dot p1" id="turnDot"></span><span id="turnName">Player 1</span></div>
+      <button id="startBtn">Choose Category</button>
+      <div class="box" id="catBox"><div class="lbl">Pick a category</div><div class="cat-grid" id="catGrid"></div></div>
+      <div class="box" id="quizBox">
+        <div class="lbl"><span id="catLabel"></span><span id="reward"></span></div>
+        <div class="timer-row"><span id="timerText">10.0s</span><div class="track"><div id="timerFill"></div></div></div>
+        <div id="question"></div><div id="choices"></div>
+      </div>
+      <div id="message">Answer correctly to move forward. Wrong answer, and you stay put! First to square 100 wins.</div>
+      <div id="winner"></div>
+      <button class="ghost" id="resetBtn">Reset Game</button>
+      <button class="ghost" id="resetScoresBtn">Reset Scores</button>
+      <button class="ghost" id="muteBtn">🔊 Sound On</button>
+    </div>
+    <div class="card legend">
+      <div><span class="sw" style="background:var(--ladder)"></span>Ladders climb you up</div>
+      <div><span class="sw" style="background:var(--snake)"></span>Snakes slide you down</div>
+      <div>✅ Correct answer moves you 1–6 squares</div>
+      <div>❌ Wrong answer skips your turn</div>
+    </div>
+  </div>
+</div>
+<script>
+const SIZE=10,CELL=48,TIME_LIMIT=10;
+// ---- Sound ----
+const SFX=(()=>{let c=null,muted=false;
+const ctx=()=>{if(!c)c=new(window.AudioContext||window.webkitAudioContext)();if(c.state==='suspended')c.resume();return c};
+function tone(f,d,o={}){if(muted)return;try{const a=ctx(),t=a.currentTime+(o.delay||0),os=a.createOscillator(),g=a.createGain();os.type=o.type||'sine';os.frequency.setValueAtTime(f,t);if(o.to)os.frequency.exponentialRampToValueAtTime(o.to,t+d);g.gain.setValueAtTime(0,t);g.gain.linearRampToValueAtTime(o.gain||.2,t+.01);g.gain.exponentialRampToValueAtTime(.001,t+d);os.connect(g).connect(a.destination);os.start(t);os.stop(t+d+.02)}catch(e){}}
+function hiss(){if(muted)return;try{const a=ctx(),n=a.sampleRate*.5,b=a.createBuffer(1,n,a.sampleRate),d=b.getChannelData(0);for(let i=0;i<n;i++)d[i]=(Math.random()*2-1)*(1-i/n);const s=a.createBufferSource();s.buffer=b;const f=a.createBiquadFilter();f.type='bandpass';f.frequency.value=3500;const g=a.createGain();g.gain.value=.2;s.connect(f).connect(g).connect(a.destination);s.start()}catch(e){}}
+return{setMuted:v=>muted=v,isMuted:()=>muted,
+correct(){tone(523,.13,{type:'square',gain:.16});tone(659,.13,{type:'square',gain:.16,delay:.09});tone(1046,.3,{type:'triangle',gain:.24,delay:.18})},
+wrong(){tone(300,.35,{type:'sawtooth',gain:.2,to:90})},
+ladder(){tone(200,.5,{gain:.16,to:900})},
+snake(){hiss();tone(180,.45,{type:'sawtooth',gain:.12,to:70})},
+victory(){[523,659,784,1046].forEach((f,i)=>tone(f,.28,{type:'triangle',gain:.22,delay:i*.14}))}}})();
+
+const ladders={3:38,8:30,28:84,58:77,75:86,24:56,51:67};
+const snakes={97:78,92:51,87:36,62:19,54:34,64:60,17:7};
+
+function rc(n){const i=n-1,row=Math.floor(i/SIZE);let col=i%SIZE;if(row%2)col=SIZE-1-col;return{gr:SIZE-1-row,col}}
+function xy(n){const{gr,col}=rc(n);return{x:col*CELL+CELL/2,y:gr*CELL+CELL/2}}
+
+// ---- Board ----
+const board=document.getElementById('board');
+for(let n=1;n<=100;n++){const{gr,col}=rc(n),d=document.createElement('div');d.className='cell '+((gr+col)%2?'b':'a')+(n===100?' win':'');d.style.gridRowStart=gr+1;d.style.gridColumnStart=col+1;d.textContent=n;board.appendChild(d)}
+const NS='http://www.w3.org/2000/svg',svg=document.createElementNS(NS,'svg');
+svg.id='overlay';svg.setAttribute('width',SIZE*CELL);svg.setAttribute('height',SIZE*CELL);board.appendChild(svg);
+function el(tag,attrs){const e=document.createElementNS(NS,tag);for(const k in attrs)e.setAttribute(k,attrs[k]);svg.appendChild(e);return e}
+function connector(f,t,color,isLadder){
+  const a=xy(f),b=xy(t),dx=b.x-a.x,dy=b.y-a.y,len=Math.hypot(dx,dy),nx=-dy/len,ny=dx/len;
+  if(isLadder){
+    const o=5;[1,-1].forEach(s=>el('line',{x1:a.x+nx*o*s,y1:a.y+ny*o*s,x2:b.x+nx*o*s,y2:b.y+ny*o*s,stroke:color,'stroke-width':3,'stroke-linecap':'round'}));
+    for(let i=1;i<6;i++){const k=i/6,px=a.x+dx*k,py=a.y+dy*k;el('line',{x1:px+nx*o,y1:py+ny*o,x2:px-nx*o,y2:py-ny*o,stroke:color,'stroke-width':2})}
+  }else{
+    let d=`M ${a.x} ${a.y} `;
+    for(let i=1;i<=4;i++){const k=i/4,w=(i%2?-1:1)*14;d+=`Q ${a.x+dx*k+nx*w} ${a.y+dy*k+ny*w} ${a.x+dx*k} ${a.y+dy*k} `}
+    el('path',{d,stroke:color,'stroke-width':8,fill:'none','stroke-linecap':'round'});
+    el('path',{d,stroke:'#A8D08D','stroke-width':2.5,fill:'none','stroke-linecap':'round','stroke-dasharray':'3,5',opacity:.8,class:'snake-belly'});
+    el('circle',{cx:a.x,cy:a.y,r:8,fill:color,stroke:'#0F3320','stroke-width':1.5});
+    [-3,3].forEach(o=>el('circle',{cx:a.x+o,cy:a.y-2,r:1.3,fill:'#FFE8A3'}));
+    el('path',{d:`M ${a.x} ${a.y-8} l -2 -5 M ${a.x} ${a.y-8} l 2 -5`,stroke:'#C0392B','stroke-width':1,fill:'none'});
+  }
+}
+Object.entries(ladders).forEach(([f,t])=>connector(+f,+t,'#3E7D4E',true));
+Object.entries(snakes).forEach(([f,t])=>connector(+f,+t,'#1F5C3A',false));
+
+const tok=[0,1].map(i=>{const e=document.createElement('div');e.className='token p'+(i+1);e.textContent=i?'👩':'🧑';board.appendChild(e);return e});
+const OFF=[-6,6];
+function place(i,n){const p=xy(Math.max(1,Math.min(n,100)));tok[i].style.left=(p.x-8+OFF[i])+'px';tok[i].style.top=(p.y-2)+'px'}
+const state={pos:[1,1],cur:0,over:false};
+place(0,1);place(1,1);
+
+// ---- Scores (localStorage guarded) ----
+const KEY='bytequestScores';let scores=[0,0];
+try{const r=localStorage.getItem(KEY);if(r)scores=JSON.parse(r)}catch(e){}
+const saveScores=()=>{try{localStorage.setItem(KEY,JSON.stringify(scores))}catch(e){}};
+const $=id=>document.getElementById(id);
+const updScores=()=>{$('s1').textContent=scores[0];$('s2').textContent=scores[1]};updScores();
+
+// ---- Questions (SAMPLE BANK — paste your full questionBank here) ----
+const Q=(category,q,correct,...wrong)=>({category,q,correct,wrong});
+const bank={
+1:[Q('Programming','Which language is most associated with Unity scripting?','C#','Python','Ruby','Swift'),
+   Q('Programming','What does debugging mean?','Finding and fixing errors in code','Adding new graphics','Compressing audio'),
+   Q('Design','What is a sprite in 2D game development?','A 2D image or animation used in a game','A game engine','A sound effect file'),
+   Q('Design','What does UI stand for in game design?','User Interface','Unique Identifier','Universal Input'),
+   Q('Audio','What does SFX stand for?','Sound Effects','Sound Frequency Extension','Sample Fix'),
+   Q('Audio','What is background music in games often called?','BGM','SFX','HP'),
+   Q('General','What does FPS stand for in gaming?','Frames Per Second','Fast Player System','Full Pixel Scan'),
+   Q('General','What does NPC stand for?','Non-Player Character','New Player Class','Network Protocol Client')],
+2:[Q('Programming','What is a hitbox used for?','Detecting collisions between objects','Storing save data','Rendering shadows'),
+   Q('Programming','What does API stand for?','Application Programming Interface','Automated Player Input','Audio Playback Instruction'),
+   Q('Design','What is a shader used for?','Controlling how surfaces are rendered/lit','Managing inventory','Handling network sync'),
+   Q('Design','What is playtesting?','Having players try a game to gather feedback','Writing game code','Mixing audio tracks'),
+   Q('Audio','What is foley in game audio?','Custom sound effects matching on-screen actions','A type of shader','A save file format'),
+   Q('Audio','What is audio mixing?','Balancing multiple sound sources together','Compressing textures','Rendering 3D models'),
+   Q('General','What does DLC stand for?','Downloadable Content','Digital Level Creator','Direct Line Connection'),
+   Q('General','What is a beta test?','Testing a game before full release','The final release','A marketing trailer')],
+3:[Q('Programming','Main benefit of an Entity Component System (ECS)?','Better performance through data-oriented design','Easier 2D drawing','Built-in netcode'),
+   Q('Programming','What is a quaternion used for?','Representing 3D rotations without gimbal lock','Compressing textures','Storing scores'),
+   Q('Design','What does LOD (Level of Detail) optimize?','Rendering simpler models for distant objects','Difficulty scaling','Save file structure'),
+   Q('Design','What does diegetic UI mean?','Interface elements that exist inside the game world','A menu-only UI','A save system'),
+   Q('Audio','What is spatial audio used for?','Simulating directional 3D sound','Compressing saves','Reducing polygons'),
+   Q('Audio','What does HRTF stand for?','Head-Related Transfer Function','High Range Tone Filter','Hybrid Rendering Tone Function'),
+   Q('General','What is scope creep?','Uncontrolled growth of a project\'s features','A camera movement','A rendering technique'),
+   Q('General','What is technical debt?','Code shortcuts that cost more to maintain later','Unpaid licensing fees','Server costs')]
+};
+
+// ---- Extra questions (so questions don't repeat) ----
+bank[1].push(
+ Q('Programming','What is a variable?','A named container that stores data','A type of sound file','A game level'),
+ Q('Programming','What is a loop?','Code that repeats while a condition holds','A syntax error','A type of texture'),
+ Q('Programming','What does an if statement do?','Runs code only when a condition is true','Deletes a script','Plays an animation'),
+ Q('Design','What is a game level?','A stage or area the player progresses through','A volume setting','A type of bug'),
+ Q('Design','What is a HUD?','On-screen display of health, score, etc.','A graphics card','A save file'),
+ Q('Design','What is a tilemap used for?','Building 2D levels from small repeated tiles','Recording audio','Compiling code'),
+ Q('Audio','What does a sound loop do?','Repeats an audio clip continuously','Deletes the audio','Slows the game'),
+ Q('Audio','What is volume?','How loud a sound is','How fast a sound plays','The length of a clip'),
+ Q('Audio','Which file format is common for compressed music?','MP3','PNG','TXT'),
+ Q('General','What is a bug?','An error or flaw in a program','A game character','A power-up'),
+ Q('General','What is a power-up?','An item that gives a temporary boost','A save point','A loading screen'),
+ Q('General','What does XP stand for in games?','Experience Points','Extra Power','Extended Play')
+);
+bank[2].push(
+ Q('Programming','What is an array?','An ordered collection of values','A single number','A graphics effect'),
+ Q('Programming','What is a function?','A reusable block of code that does a task','A game genre','A texture map'),
+ Q('Programming','What is version control (e.g., Git) for?','Tracking and managing code changes','Rendering graphics','Mixing sound'),
+ Q('Design','What is a game loop in design terms?','The repeating cycle of actions the player performs','A crash','A menu screen'),
+ Q('Design','What is a prefab in Unity?','A reusable pre-configured game object','A sound mixer','A bug report'),
+ Q('Design','What is a wireframe in UI design?','A basic layout sketch of a screen','A final 3D model','A sound wave'),
+ Q('Audio','What is sample rate?','How many audio samples are captured per second','How loud a clip is','The file name length'),
+ Q('Audio','What does looping BGM need to avoid?','An audible gap or click at the loop point','Any melody','Stereo sound'),
+ Q('Audio','What is a voice-over?','Recorded spoken dialogue or narration','A shader','A level map'),
+ Q('General','What is an indie game?','A game made by a small independent team','A game with no graphics','A game only for mobile'),
+ Q('General','What is a game jam?','An event to make a game in a short time','A bug fix patch','A type of console'),
+ Q('General','What does MVP mean in development?','Minimum Viable Product','Most Valuable Player only','Maximum Visual Polish')
+);
+bank[3].push(
+ Q('Programming','What is the time complexity of binary search?','O(log n)','O(n)','O(n^2)'),
+ Q('Programming','What does A* (A-star) algorithm solve in games?','Finding the shortest path','Compressing audio','Rendering shadows'),
+ Q('Programming','What is object pooling?','Reusing objects instead of creating/destroying them','Saving scores online','Drawing 3D models'),
+ Q('Design','What is flow state in game design?','Balance between challenge and player skill','A menu animation','A save feature'),
+ Q('Design','What is procedural generation?','Creating content automatically with algorithms','Hand-drawing every level','Recording gameplay'),
+ Q('Design','What is a core gameplay loop?','The main repeated cycle of actions and rewards','A rendering bug','A music track'),
+ Q('Audio','What is adaptive (dynamic) music?','Music that changes with gameplay','Music that never plays','Music with no instruments'),
+ Q('Audio','What does audio ducking do?','Lowers some sounds so others (e.g., dialogue) stand out','Removes all sound','Speeds up music'),
+ Q('Audio','What is reverb?','Echo-like persistence of sound in a space','A texture filter','A type of compression for models'),
+ Q('General','What is a vertical slice?','A small fully polished playable portion of a game','A map orientation','A type of bug'),
+ Q('General','What is a game design document (GDD)?','A document describing the game\'s design and plans','A save file','A graphics driver'),
+ Q('General','What is crunch in game development?','Extended overtime before a deadline','A sound effect','A rendering mode')
+);
+const CATS=['Programming','Design','Audio','General'],ICON={Programming:'💻',Design:'🎨',Audio:'🔊',General:'🎮'};
+const used=new Set(); // keys of questions already asked (kept across Reset Game)
+const rand=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function genQ(pos,cat){
+  const lv=pos<30?1:pos<70?2:3,order=[lv,...[1,2,3].filter(l=>l!==lv)];
+  let all=[];order.forEach(l=>bank[l].forEach((item,i)=>{if(item.category===cat)all.push({item,key:l+'-'+i})}));
+  if(!all.length)order.forEach(l=>bank[l].forEach((item,i)=>all.push({item,key:l+'-'+i})));
+  // prefer unused questions at this level, then other levels of the same category
+  let pool=[];
+  for(const l of order){pool=all.filter(x=>x.key.startsWith(l+'-')&&!used.has(x.key));if(pool.length)break}
+  if(!pool.length)pool=all; // safety only; showCats blocks exhausted categories
+  const p=pool[rand(0,pool.length-1)];used.add(p.key);
+  return{...p.item,move:rand(1,6)};
+}
+
+// ---- Game flow ----
+const names=['Player 1','Player 2'];let cq=null,timer=null;
+['name1','name2'].forEach((id,i)=>$(id).addEventListener('input',e=>{names[i]=e.target.value.trim()||'Player '+(i+1);$('n'+(i+1)).textContent=names[i];updTurn()}));
+function setStartUI(on){if(!on)setHow(false);$('beginBtn').style.display=on?'none':'block';$('name1').disabled=on;$('name2').disabled=on}
+function beginGame(){if(state.started||state.over)return;state.started=true;setStartUI(true);setHow(false);showCats()}
+$('beginBtn').onclick=beginGame;
+$('howBtn').onclick=()=>setHow($('howBox').style.display==='none');
+function setHow(open){$('howBox').style.display=open?'block':'none';$('howBtn').textContent=open?'Hide':'Show'}
+['name1','name2'].forEach(id=>$(id).addEventListener('keydown',e=>{if(e.key==='Enter')beginGame()}));
+const updTurn=()=>{$('turnName').textContent=names[state.cur];$('turnDot').className='dot p'+(state.cur+1)};
+const msg=t=>$('message').textContent=t;
+function stopTimer(){clearInterval(timer);timer=null}
+function startTimer(){
+  let r=TIME_LIMIT;const tt=$('timerText'),tf=$('timerFill');
+  tt.textContent=r.toFixed(1)+'s';tf.style.width='100%';tt.classList.remove('urgent');tf.classList.remove('urgent');
+  timer=setInterval(()=>{r-=.1;
+    if(r<=0){stopTimer();tt.textContent='0.0s';tf.style.width='0%';timeout();return}
+    tf.style.width=(r/TIME_LIMIT*100)+'%';tt.textContent=r.toFixed(1)+'s';
+    if(r<=TIME_LIMIT*.4){tt.classList.add('urgent');tf.classList.add('urgent')}},100);
+}
+function timeout(){
+  SFX.wrong();
+  document.querySelectorAll('.choiceBtn').forEach(b=>{b.disabled=true;if(b.textContent===cq.correct)b.classList.add('correct')});
+  setTimeout(()=>{$('quizBox').style.display='none';$('startBtn').style.display='block';msg(`${names[state.cur]} ran out of time! (correct: "${cq.correct}"). Turn passes!`);endTurn()},1200);
+}
+function remaining(cat){let n=0;[1,2,3].forEach(l=>bank[l].forEach((it,i)=>{if(it.category===cat&&!used.has(l+'-'+i))n++}));return n}
+function showCats(keepMsg){
+  if(state.over||!state.started)return;
+  $('catGrid').innerHTML='';
+  let note='';if(CATS.every(c=>remaining(c)===0)){used.clear();note=' All questions were used, so the pool was refreshed.'}
+  CATS.forEach(c=>{const left=remaining(c),b=document.createElement('button');b.className='catBtn';b.textContent=`${ICON[c]} ${c}`;if(!left){b.disabled=true;b.style.opacity='.45';b.style.cursor='not-allowed';b.title='No new questions left'}b.onclick=()=>{$('catBox').style.display='none';newQ(c)};$('catGrid').appendChild(b)});
+  $('catBox').style.display='block';$('startBtn').style.display='none';if(keepMsg!==true||note)msg(`${names[state.cur]}, pick a category!`+note);
+}
+function newQ(cat){
+  if(state.over)return;
+  cq=genQ(state.pos[state.cur],cat);
+  $('question').textContent=cq.q;
+  $('reward').textContent=`worth ${cq.move} ${cq.move===1?'square':'squares'}`;
+  $('catLabel').textContent=`${ICON[cq.category]} ${cq.category}`;
+  $('choices').innerHTML='';
+  shuffle([cq.correct,...cq.wrong]).forEach(o=>{const b=document.createElement('button');b.className='choiceBtn';b.textContent=o;b.onclick=()=>answer(o,b);$('choices').appendChild(b)});
+  $('quizBox').style.display='block';$('startBtn').style.display='none';
+  msg(`${names[state.cur]}, answer within ${TIME_LIMIT} seconds!`);startTimer();
+}
+function answer(sel,btn){
+  stopTimer();document.querySelectorAll('.choiceBtn').forEach(b=>b.disabled=true);
+  const ok=sel===cq.correct;
+  if(ok){btn.classList.add('correct');SFX.correct()}
+  else{btn.classList.add('wrong');document.querySelectorAll('.choiceBtn').forEach(b=>{if(b.textContent===cq.correct)b.classList.add('correct')});SFX.wrong()}
+  setTimeout(()=>{$('quizBox').style.display='none';$('startBtn').style.display='block';
+    if(ok)move(cq.move);else{msg(`${names[state.cur]} answered wrong (correct: "${cq.correct}"). Turn passes!`);endTurn()}},1400);
+}
+function move(m){
+  const i=state.cur,start=state.pos[i],target=Math.min(start+m,100);
+  m=target-start; // reaching or passing 100 counts as a win
+  let p=start,c=0;
+  (function step(){
+    if(c<m){p++;place(i,p);c++;setTimeout(step,180);return}
+    state.pos[i]=target;let t=`${names[i]} answered correctly and moved to square ${target}.`;
+    if(target===100){msg(`${names[i]} answered correctly and reached square 100!`);win(i);return}
+    const jump=(dest,sound,text)=>{sound();setTimeout(()=>{state.pos[i]=dest;place(i,dest);msg(`${t} ${text} ${dest}!`);endTurn()},300)};
+    if(ladders[target])return jump(ladders[target],SFX.ladder,`A ladder boosts ${names[i]} up to square`);
+    if(snakes[target])return jump(snakes[target],SFX.snake,`Oh no, a snake bites ${names[i]} down to square`);
+    msg(t);endTurn();
+  })();
+}
+function endTurn(){if(state.over)return;state.cur=1-state.cur;updTurn();showCats(true)}
+function win(i){
+  stopTimer();SFX.victory();state.over=true;
+  $('startBtn').disabled=true;$('quizBox').style.display='none';$('catBox').style.display='none';$('startBtn').style.display='block';
+  $('winner').style.display='block';$('winner').textContent=`🏆 ${names[i]} wins the game!`;
+  scores[i]++;saveScores();updScores();
+}
+$('startBtn').onclick=showCats;
+$('resetBtn').onclick=()=>{
+  stopTimer();state.pos=[1,1];state.cur=0;state.over=false;
+  $('winner').style.display='none';msg('Answer correctly to move forward. Wrong answer, and you stay put! First to square 100 wins.');
+  place(0,1);place(1,1);$('startBtn').disabled=false;$('quizBox').style.display='none';$('catBox').style.display='none';$('startBtn').style.display='block';updTurn();state.started=false;setStartUI(false);msg('Type your names, then press Start Game.');
+};
+$('resetScoresBtn').onclick=()=>{scores=[0,0];saveScores();updScores()};
+$('muteBtn').onclick=()=>{const m=!SFX.isMuted();SFX.setMuted(m);$('muteBtn').textContent=m?'🔇 Sound Off':'🔊 Sound On'};
+updTurn();msg('Type your names, then press Start Game.');
+
+// ---- Floating background symbols ----
+(function(){
+  const h=document.createElement('div');h.id='bgSymbols';document.body.prepend(h);
+  const sy=['</>','{ }','01','10','🐍','🪜','🎮','+','#','( )','==','🎲',';'];
+  for(let i=0;i<22;i++){const s=document.createElement('span');s.textContent=sy[rand(0,sy.length-1)];
+    s.style.left=Math.random()*100+'vw';s.style.fontSize=(16+Math.random()*26)+'px';
+    s.style.animationDuration=(14+Math.random()*16)+'s';s.style.animationDelay=(-Math.random()*25)+'s';h.appendChild(s)}
+})();
+</script>
+</body>
+</html>
